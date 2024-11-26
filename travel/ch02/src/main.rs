@@ -25,7 +25,131 @@ fn main() {
         breed: PhantomData,
     };
     println!("my_poodle: {} {}", my_poodle.name, my_poodle.breed_name());
+
+    let rect = Rectangle::new(2, 3);
+    let square = Square::new(5);
+    println!(
+        "rect has width {}, height {}, and area {}",
+        rect.get_width(),
+        rect.get_height(),
+        rect.get_area()
+    );
+    println!(
+        "square has length {} and area {}",
+        square.get_length(),
+        square.get_area()
+    );
+
+    let dog = Dog3;
+    let cat = Cat;
+    println!("I am a {}", describe_type(&dog));
+    println!("I am a {}", describe_type(&cat));
+
+    println!("I am a {}", describe_type2::<Dog>());
+    println!("I am a {}", describe_type2::<Cat>());
 }
+
+struct Dog3;
+struct Cat;
+
+pub trait SelfDescribing {
+    fn describe(&self) -> String;
+    fn describe2() -> String;
+}
+
+impl SelfDescribing for Dog3 {
+    fn describe(&self) -> String {
+        "happy little dog".into()
+    }
+    fn describe2() -> String {
+        "happy little dog".into()
+    }
+}
+impl SelfDescribing for Cat {
+    fn describe(&self) -> String {
+        "curious cat".into()
+    }
+    fn describe2() -> String {
+        "curious cat".into()
+    }
+}
+
+fn describe_type<T: SelfDescribing>(t: &T) -> String {
+    t.describe()
+}
+
+fn describe_type2<T: SelfDescribing>() -> String {
+    T::describe2()
+}
+
+struct Rectangle {
+    width: i32,
+    height: i32,
+}
+
+impl Rectangle {
+    pub fn new(width: i32, height: i32) -> Self {
+        Self { width, height }
+    }
+}
+
+struct Square {
+    length: i32,
+}
+
+impl Square {
+    pub fn new(length: i32) -> Self {
+        Self { length }
+    }
+
+    pub fn get_length(&self) -> i32 {
+        self.length
+    }
+}
+
+pub trait Rectangular {
+    fn get_width(&self) -> i32;
+    fn get_height(&self) -> i32;
+    fn get_area(&self) -> i32;
+}
+
+impl Rectangular for Rectangle {
+    fn get_width(&self) -> i32 {
+        self.width
+    }
+    fn get_height(&self) -> i32 {
+        self.height
+    }
+    fn get_area(&self) -> i32 {
+        self.width * self.height
+    }
+}
+
+impl Rectangular for Square {
+    fn get_width(&self) -> i32 {
+        self.length
+    }
+    fn get_height(&self) -> i32 {
+        self.length
+    }
+    fn get_area(&self) -> i32 {
+        self.length * self.length
+    }
+}
+
+trait DoesItBark {
+    fn it_barks(&self) -> bool;
+}
+
+struct Dog2;
+
+impl DoesItBark for Dog2 {
+    fn it_barks(&self) -> bool {
+        true
+    }
+}
+
+trait MinimalTrait {}
 
 struct Labrador {}
 struct Retriever {}

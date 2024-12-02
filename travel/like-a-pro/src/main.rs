@@ -64,7 +64,112 @@ fn main() {
     assert_eq!(0xffffffffu32.wrapping_add(1), 0);
     assert_eq!(0u32.wrapping_sub(1), 0xffffffff);
     assert_eq!(0x80000000u32.wrapping_mul(2), 0);
+
+    let tuple = (1, 2, 3);
+    println!("tuple = ({}, {}, {})", tuple.0, tuple.1, tuple.2);
+    //println!("tuple = {}", tuple);
+    match tuple {
+        (one, two, three) => println!("{}, {}, {}", one, two, three),
+    }
+
+    let (one, two, three) = tuple;
+    println!("{}, {}, {}", one, two, three);
+
+    let tuple_struct = TupleStruct("string value".into());
+    println!("{}", tuple_struct.0);
+
+    let mut debuggable_struct = DebuggableStruct::default();
+    println!("{:?}", debuggable_struct);
+    println!("{:?}", debuggable_struct.clone());
+    debuggable_struct.increment_number();
+    println!("{:?}", debuggable_struct.incremented_number());
+
+    println!("{:?}", JapaneseDogBreeds::ShibaInu);
+    println!("{:?}", JapaneseDogBreeds::ShibaInu as u32);
 }
+
+#[derive(Debug)]
+struct Error {
+    message: String,
+}
+
+impl From<std::io::Error> for Error {
+    fn from(other: std::io::Error) -> Self {
+        Self {
+            message: other.to_string(),
+        }
+    }
+}
+
+fn read_file(name: &str) -> Result<String, Error> {
+    use std::fs::File;
+    use std::io::prelude::*;
+    let mut file = File::open(name)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    Ok(contents)
+}
+
+#[derive(Debug)]
+enum JapaneseDogBreeds {
+    AkitaKen,
+    HokkaidoInu,
+    KaiKen,
+    KishuInu,
+    ShibaInu,
+    ShikokuKen,
+}
+
+impl From<u32> for JapaneseDogBreeds {
+    fn from(other: u32) -> Self {
+        match other {
+                other if JapaneseDogBreeds::AkitaKen as u32 == other => {
+                    JapaneseDogBreeds::AkitaKen
+                }
+                other if JapaneseDogBreeds::HokkaidoInu as u32 == other => {
+                    JapaneseDogBreeds::HokkaidoInu
+                }
+                other if JapaneseDogBreeds::KaiKen as u32 == other => {
+                    JapaneseDogBreeds::KaiKen
+                }
+                other if JapaneseDogBreeds::KishuInu as u32 == other => {
+                    JapaneseDogBreeds::KishuInu
+                }
+                other if JapaneseDogBreeds::ShibaInu as u32 == other => {
+                    JapaneseDogBreeds::ShibaInu
+                }
+                other if JapaneseDogBreeds::ShikokuKen as u32 == other => {
+                    JapaneseDogBreeds::ShikokuKen
+                }
+                _ => panic!("Unknown breed!"),
+            }
+        }
+}        
+#[derive(Debug, Clone, Default)]
+struct DebuggableStruct {
+    string: String,
+    number: i32,
+}
+
+impl DebuggableStruct {
+    fn increment_number(&mut self) {
+        self.number += 1;
+    }
+    fn incremented_number(mut self) -> Self {
+        self.number += 1;
+        self
+    }
+}
+
+pub struct MixedVisibilityStruct {
+    pub name: String,
+    pub(crate) value: String,
+    //pub(super) number: i32,
+}
+
+struct TupleStruct(String);
+struct EmptyStruct {}
+struct AnotherEmptyStruct;
 
 #[derive(Hash, Eq, PartialEq, Debug)]
 struct CompoundKey {

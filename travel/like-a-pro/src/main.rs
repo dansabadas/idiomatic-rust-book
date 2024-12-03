@@ -1,5 +1,6 @@
 use metrohash::MetroBuildHasher;
 use std::collections::HashMap;
+use std::{fs::File, io::Read};
 
 fn main() {
     // let s: str = "impossible str";
@@ -86,6 +87,64 @@ fn main() {
 
     println!("{:?}", JapaneseDogBreeds::ShibaInu);
     println!("{:?}", JapaneseDogBreeds::ShibaInu as u32);
+    println!("{}", StringWrapper::from("Hello, world!").0);
+
+    let mut top_grossing_films = vec!["Avatar", "Avengers: Endgame", "Titanic"];
+    let top_grossing_films_mutable_reference =
+        &mut top_grossing_films;
+    top_grossing_films_mutable_reference.push("Star Wars: The Force Awakens");
+    let top_grossing_films_reference = &top_grossing_films;
+    println!(
+        "Printed using immutable reference: {:#?}",
+        top_grossing_films_reference
+    );
+    let top_grossing_films_moved = top_grossing_films;
+    println!("Printed after moving: {:#?}", top_grossing_films_moved);
+
+    // println!("Print using original value: {:#?}", top_grossing_films); //original was moved
+    // println!(
+    // "Print using mutable reference: {:#?}",
+    // top_grossing_films_mutable_reference //invalidated after creating immut ref
+    // );
+    let mut most_populous_us_cities =
+    vec!["New York City", "Los Angeles", "Chicago", "Houston"];
+    let most_populous_us_cities_cloned = most_populous_us_cities.clone();
+    most_populous_us_cities.push("Phoenix");
+    println!("most_populous_us_cities = {:#?}", most_populous_us_cities);
+    println!(
+        "most_populous_us_cities_cloned = {:#?}",
+        most_populous_us_cities_cloned
+    );
+}
+
+// #[repr(C)]
+// struct GzFileState {
+//     have: c_uint,
+//     next: *mut c_uchar,
+//     pos: i64,
+// }
+
+struct Error2(String);
+
+impl From<std::io::Error> for Error2 {
+    fn from(other: std::io::Error) -> Self {
+        Self(other.to_string())
+    }
+}
+
+fn read_file2(name: &str) -> Result<String, Error2> {
+    let mut f = File::open(name)?;
+    let mut output = String::new();
+    f.read_to_string(&mut output)?;
+    Ok(output)
+}
+
+struct StringWrapper(String);
+
+impl From<&str> for StringWrapper {
+    fn from(other: &str) -> Self {
+        Self(other.into())
+    }
 }
 
 #[derive(Debug)]

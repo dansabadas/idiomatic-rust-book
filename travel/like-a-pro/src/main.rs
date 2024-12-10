@@ -1,6 +1,12 @@
 use metrohash::MetroBuildHasher;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::{fs::File, io::Read};
+
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use std::cell::Cell;
 
 fn main() {
     // let s: str = "impossible str";
@@ -126,6 +132,199 @@ fn main() {
             item = next_item;
         } else {
             break;
+        }
+    }
+
+    let mut list3 = SinglyLinkedList3::new("head");
+    list3.append("middle");
+    list3.append("tail");
+    let mut item3 = list3.head();
+    loop {
+        println!("item3: {}", item3.data());
+        if let Some(next_item) = item3.next() {
+            item3 = next_item;
+        } else {
+            break;
+        }
+    }
+
+    // let mut custom_alloc_vec: Vec<i32, _> =
+    // Vec::with_capacity_in(10, BasicAllocator);
+    // for i in 0..10 {
+    // custom_alloc_vec.push(i as i32 + 1);
+    // }
+    // println!("custom_alloc_vec={:?}", custom_alloc_vec);
+
+    let player = Player::new("Alice", 50);
+
+    println!("Initial Score: {}", player.get_score());
+
+    // Even though `player` is immutable, we can update the score.
+    player.update_score(10);
+
+    println!("Updated Score: {}", player.get_score());
+
+    let game = Game::new();
+
+    game.add_player("Alice");
+    game.add_player("Bob");
+
+    game.list_players();
+
+    // Even though `game` is immutable, we can still modify the list of players.
+    game.add_player("Charlie");
+
+    game.list_players();
+}
+
+struct Game {
+    players: RefCell<Vec<String>>, // Allows mutable access to the list of players
+}
+
+impl Game {
+    fn new() -> Game {
+        Game {
+            players: RefCell::new(Vec::new()),
+        }
+    }
+
+    fn add_player(&self, name: &str) {
+        self.players.borrow_mut().push(name.to_string());
+    }
+
+    fn list_players(&self) {
+        let players = self.players.borrow(); // Immutable borrow
+        println!("Players: {:?}", *players);
+    }
+}
+
+struct Player {
+    name: String,
+    score: Cell<i32>, // Allows interior mutability
+}
+
+impl Player {
+    fn new(name: &str, score: i32) -> Player {
+        Player {
+            name: name.to_string(),
+            score: Cell::new(score),
+        }
+    }
+
+    fn update_score(&self, delta: i32) {
+        let new_score = self.get_score() + delta;
+        self.score.set(new_score);
+    }
+
+    fn get_score(&self) -> i32 {
+        self.score.get()
+    }
+}
+
+#[derive(Clone)]
+struct ListItem3<T> where T: Clone,
+{
+    data: Box<T>,
+    next: Option<Box<ListItem3<T>>>,
+}
+
+impl<T> ListItem3<T> where T: Clone,
+{
+    fn new(data: T) -> Self {
+        ListItem3 {
+            data: Box::new(data),
+            next: None,
+        }
+    }
+    fn next(&self) -> Option<&Self> {
+        if let Some(next) = &self.next {
+            Some(&*next)
+        } else {
+            None
+        }
+    }
+    fn mut_tail(&mut self) -> &mut Self {
+        if self.next.is_some() {
+            self.next.as_mut().unwrap().mut_tail()
+        } else {
+            self
+        }
+    }
+    fn data(&self) -> &T {
+        self.data.as_ref()
+    }
+}
+
+#[derive(Clone)]
+struct SinglyLinkedList3<'a, T> where T: Clone,
+{
+    head: Cow<'a, ListItem3<T>>,
+}
+
+impl<'a, T> SinglyLinkedList3<'a, T> where T: Clone,
+{
+    fn new(data: T) -> Self {
+        SinglyLinkedList3 {
+            head: Cow::Owned(ListItem3::new(data)),
+        }
+    }
+    fn append(&self, data: T) -> Self {
+        let mut new_list = self.clone();
+        let mut tail = new_list.head.to_mut().mut_tail();
+        tail.next = Some(Box::new(ListItem3::new(data)));
+        new_list
+    }
+    fn head(&self) -> &ListItem3<T> {
+        &self.head
+    }
+}
+
+struct ListItem2<T> {
+    prev: Option<ItemRef<T>>,
+    data: Box<T>,
+    next: Option<ItemRef<T>>,
+}
+type ItemRef<T> = Rc<RefCell<ListItem2<T>>>;
+struct DoublyLinkedList<T> {
+    head: ItemRef<T>,
+}
+
+impl<T> ListItem2<T> {
+    fn new(data: T) -> Self {
+        ListItem2 {
+            prev: None,
+            data: Box::new(data),
+            next: None,
+        }
+    }
+    fn data(&self) -> &T {
+        self.data.as_ref()
+    }
+}
+
+impl<T> DoublyLinkedList<T> {
+    fn new(data: T) -> Self {
+        DoublyLinkedList {
+            head: Rc::new(RefCell::new(ListItem2::new(data))),
+        }
+    }
+    fn append(&mut self, data: T) {
+        let tail = Self::find_tail(self.head.clone());
+        let new_item = Rc::new(RefCell::new(ListItem2::new(data)));
+        new_item.borrow_mut().prev = Some(tail.clone());
+        tail.borrow_mut().next = Some(new_item);
+    }
+    fn head(&self) -> ItemRef<T> {
+        self.head.clone()
+    }
+    fn tail(&self) -> ItemRef<T> {
+        Self::find_tail(self.head())
+    }
+    fn find_tail(item: ItemRef<T>) -> ItemRef<T> {
+        if let Some(next) = &item.borrow().next {
+            Self::find_tail(next.clone())
+        } else {
+            item.clone()
         }
     }
 }

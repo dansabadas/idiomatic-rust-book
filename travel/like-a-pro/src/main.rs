@@ -3,12 +3,16 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::{fs::File, io::Read};
 
-use std::cell::RefCell;
+use std::cell::{Cell,RefCell};
 use std::rc::Rc;
 
-use std::cell::Cell;
+use std::sync::{Arc, Mutex};
+use std::{thread, time};
 
-fn main() {
+use tokio::task::JoinHandle;
+
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
+async fn main() {
     // let s: str = "impossible str";
     print_String(String::from("String"));
     print_str(&String::from("String"));
@@ -175,6 +179,94 @@ fn main() {
     game.add_player("Charlie");
 
     game.list_players();
+
+    let counter = Arc::new(Mutex::new(0));
+
+    let mut handles = vec![];
+
+    // Create 10 threads that increment the counter
+    for _ in 0..10 {
+        let counter_clone = Arc::clone(&counter); // Clone the Arc for thread-safe sharing
+
+        let handle = thread::spawn(move || {
+            let mut num = counter_clone.lock().unwrap(); // Lock the Mutex to safely access the value
+            *num += 1; // Increment the counter
+        });
+
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+    println!("Final counter value: {}", *counter.lock().unwrap());
+
+    let duration = time::Duration::from_millis(100);
+    thread::sleep(duration);
+    println!("Hello, world!");
+
+    // tokio::runtime::Builder::new_current_thread()
+    //     .enable_time()
+    //     .build()
+    //     .unwrap()
+    //     .block_on(async {
+    //         tokio::time::sleep(duration).await;
+    //         println!("Hello, world, async!");
+    //     });
+
+    tokio::time::sleep(duration).await;
+    println!("Hello, world, async!");
+
+    println!("First print statement");
+    not_an_async_function().await.ok();
+
+    println!("Test 1: Run 2 async tasks sequentially");
+    sleep_1s_blocking("Task 1").await;
+    sleep_1s_blocking("Task 2").await;
+    println!("Test 2: Run 2 async tasks concurrently (same thread)");
+    tokio::join!(
+        sleep_1s_blocking("Task 3"),
+        sleep_1s_blocking("Task 4")
+    );
+    println!("Test 3: Run 2 async tasks in parallel");
+    tokio::join!(
+        tokio::spawn(sleep_1s_blocking("Task 5")),
+        tokio::spawn(sleep_1s_blocking("Task 6"))
+    );
+
+    println!("Test 4: Run 2 async tasks sequentially");
+    sleep_1s_blocking("Task 7").await;
+    sleep_1s_blocking("Task 8").await;
+    println!("Test 5: Run 2 async tasks concurrently (same thread)");
+    tokio::join!(
+        sleep_1s_blocking("Task 9"),
+        sleep_1s_blocking("Task 10")
+    );
+    println!("Test 6: Run 2 async tasks in parallel");
+    tokio::join!(
+        tokio::spawn(sleep_1s_blocking("Task 11")),
+        tokio::spawn(sleep_1s_blocking("Task 12"))
+    );
+}
+
+async fn sleep_1s_nonblocking(task: &str) {
+    use tokio::time::{sleep, Duration};
+    println!("Entering sleep_1s_nonblocking({task})");
+    sleep(Duration::from_millis(10)).await;
+    println!("Returning from sleep_1s_nonblocking({task})");
+}
+
+async fn sleep_1s_blocking(task: &str) {
+    use std::{thread, time::Duration};
+    println!("Entering sleep_1s_blocking({task})");
+    thread::sleep(Duration::from_millis(10));
+    println!("Returning from sleep_1s_blocking({task})");
+}
+
+fn not_an_async_function() -> JoinHandle<()> {
+    tokio::task::spawn(async {
+        println!("Second print statement");
+    })
 }
 
 struct Game {
